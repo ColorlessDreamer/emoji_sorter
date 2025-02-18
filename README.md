@@ -1,0 +1,1 @@
+Discord bot to sort emojis in a channel
