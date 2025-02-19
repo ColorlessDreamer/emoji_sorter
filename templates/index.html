@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Femcel Hideout Emoji Sorter</title>
+  <!-- Google Font for main text -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <!-- Google Font for fancy header (cute, girly style) -->
+  <link href="https://fonts.googleapis.com/css2?family=Cherry+Swash&display=swap" rel="stylesheet">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- SortableJS -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <style>
+    /* Ensure box-sizing includes padding/border in widths */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    /* Page background */
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: url('https://images7.alphacoders.com/131/1311796.png') no-repeat center center fixed;
+      background-size: cover;
+      min-height: 100vh;
+      margin: 0;
+      position: relative;
+    }
+    /* Glassy container for the content */
+    .glass-container {
+      position: relative;
+      z-index: 1;
+      padding: 40px;
+      margin: 20px auto;
+      border-radius: 12px;
+      max-width: 90%;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.01);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      opacity: 0.9;
+    }
+    /* Visible, styled page title with fancy font, glow, and pulse on hover */
+    .page-title {
+      font-size: 2.5rem;
+      font-weight: 600;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+      background: rgba(255, 182, 193, 0.3);
+      border: 1px solid rgba(255, 182, 193, 0.5);
+      border-radius: 10px;
+      margin: 20px auto;
+      max-width: 90%;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+      font-family: 'Cherry Swash', cursive;
+      -webkit-text-stroke: 1px #ff1493;
+      animation: glow 3s ease-in-out infinite;
+    }
+    @keyframes glow {
+      0% {
+        text-shadow: 0 0 5px #ff1493, 0 0 10px #ff1493, 0 0 15px #ff1493;
+      }
+      50% {
+        text-shadow: 0 0 10px #ff1493, 0 0 20px #ff1493, 0 0 30px #ff1493;
+      }
+      100% {
+        text-shadow: 0 0 5px #ff1493, 0 0 10px #ff1493, 0 0 15px #ff1493;
+      }
+    }
+    .page-title:hover {
+      animation: pulseTitle 1s infinite alternate;
+    }
+    @keyframes pulseTitle {
+      from { transform: scale(1); }
+      to   { transform: scale(1.05); }
+    }
+    .page-title::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      opacity: 0.15;
+      z-index: -1;
+    }
+    /* Container for the star animation overlay (for header background) */
+    .star-animation {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: visible;
+      z-index: -1;
+    }
+    .star-animation span.star {
+      position: absolute;
+      font-size: 1.5rem;
+      color: #ffc0cb;
+      text-shadow: 0 0 2px #ff1493, 0 0 4px #ff1493;
+      animation: floatStar 3s linear forwards;
+    }
+    @keyframes floatStar {
+      0% {
+        transform: scale(0);
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.8;
+      }
+      100% {
+        transform: scale(1.5);
+        opacity: 0;
+      }
+    }
+    .star-animation span.spark {
+      position: absolute;
+      font-size: 0.8rem;
+      color: #ff69b4;
+      text-shadow: 0 0 2px #ff1493;
+      animation: sparkAnim 0.8s ease-out forwards;
+    }
+    @keyframes sparkAnim {
+      0% {
+        transform: translate(0,0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(var(--tx, 0), var(--ty, 0)) scale(0.5);
+        opacity: 0;
+      }
+    }
+    /* Emoji grid container styling */
+    .emoji-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+    /* Ensure each emoji box can position children absolutely */
+    .emoji-item {
+      background: #fff;
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: move;
+      position: relative;
+      overflow: hidden;
+    }
+    .emoji-item:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .emoji-item img {
+      width: 64px;
+      height: 64px;
+    }
+    .emoji-item .emoji-name {
+      margin-top: 10px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      white-space: normal;
+      overflow-wrap: break-word;
+      color: black;
+      -webkit-text-stroke: 0.1px #ff1493;
+    }
+    /* Star animation that appears inside each emoji box */
+    .internal-star {
+      position: absolute;
+      font-size: 1rem;
+      color: #ffc0cb;
+      text-shadow: 0 0 2px #ff1493, 0 0 4px #ff1493;
+      animation: popStar 1s ease-out forwards;
+      pointer-events: none;
+    }
+    @keyframes popStar {
+      0% {
+        transform: scale(0);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1.5);
+        opacity: 0;
+      }
+    }
+    .sortable-ghost {
+      opacity: 0.4;
+    }
+    /* Media query for mobile: Simplify the emoji box for mobile view */
+    @media (max-width: 768px) {
+      /* Full width container with horizontal padding */
+      .container {
+        width: 100%;
+        padding: 0 10px;
+        margin: 0 auto;
+      }
+      /* Force the grid to use exactly 4 columns */
+      .emoji-container {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        width: 100%;
+      }
+      /* Remove the extra styling from each emoji box */
+      .emoji-item {
+        padding: 5px;
+        background: transparent;
+        box-shadow: none;
+      }
+      /* Hide the emoji name text */
+      .emoji-item .emoji-name {
+        display: none;
+      }
+      /* Smaller emoji image size */
+      .emoji-item img {
+        width: 40px;
+        height: 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Glass container for a glassy effect -->
+  <div class="glass-container">
+    <!-- Styled page title with special characters and star animation overlay -->
+    <div class="page-title">
+      ✧₊˚ Femcel Hideout Emoji Sorter ˚₊✧
+      <div class="star-animation" id="star-animation"></div>
+    </div>
+    <!-- Main Content: Emoji grid -->
+    <div class="container">
+      <div id="emoji-list" class="emoji-container"></div>
+    </div>
+  </div>
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function createHeaderStar() {
+      const container = document.getElementById('star-animation');
+      const star = document.createElement('span');
+      star.className = 'star';
+      star.textContent = '★';
+      const posX = Math.random() * 100;
+      const posY = Math.random() * 100;
+      star.style.left = posX + '%';
+      star.style.top = posY + '%';
+      const duration = 2.5 + Math.random() * 1.5;
+      star.style.animationDuration = duration + 's';
+      container.appendChild(star);
+      setTimeout(() => star.remove(), duration * 1000);
+      
+      const sparkCount = 3 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < sparkCount; i++) {
+        const spark = document.createElement('span');
+        spark.className = 'spark';
+        spark.textContent = '✦';
+        spark.style.left = posX + '%';
+        spark.style.top = posY + '%';
+        const offsetX = (Math.random() * 60 - 30) + 'px';
+        const offsetY = (Math.random() * 60 - 30) + 'px';
+        spark.style.setProperty('--tx', offsetX);
+        spark.style.setProperty('--ty', offsetY);
+        spark.style.animationDuration = '0.8s';
+        container.appendChild(spark);
+        setTimeout(() => spark.remove(), 800);
+      }
+    }
+    setInterval(createHeaderStar, 170);
+    
+    fetch('/emojis')
+      .then(response => response.json())
+      .then(emojis => {
+        const container = document.getElementById('emoji-list');
+        emojis.forEach(emoji => {
+          const div = document.createElement('div');
+          div.className = 'emoji-item';
+          div.dataset.emojiId = emoji.id;
+          div.innerHTML = `<img src="${emoji.url}" alt="${emoji.name}"><div class="emoji-name">${emoji.name}</div>`;
+          div.addEventListener('mouseenter', function() {
+            createInternalStar(this);
+          });
+          container.appendChild(div);
+        });
+        new Sortable(container, {
+          animation: 150,
+          onEnd: function(evt) {
+            const newOrder = Array.from(container.children).map((item, index) => ({
+              id: item.dataset.emojiId,
+              position: index
+            }));
+            console.log('New order:', newOrder);
+          }
+        });
+      });
+    
+    function createInternalStar(container) {
+      const star = document.createElement('span');
+      star.className = 'internal-star';
+      star.textContent = '★';
+      const posX = Math.random() * 80 + 10;
+      const posY = Math.random() * 80 + 10;
+      star.style.left = posX + '%';
+      star.style.top = posY + '%';
+      container.appendChild(star);
+      setTimeout(() => star.remove(), 1000);
+    }
+  </script>
+</body>
+</html>
