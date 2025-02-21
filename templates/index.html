@@ -196,34 +196,89 @@
     }
     /* Media query for mobile: Simplify the emoji box for mobile view */
     @media (max-width: 768px) {
-      /* Full width container with horizontal padding */
       .container {
         width: 100%;
         padding: 0 10px;
         margin: 0 auto;
       }
-      /* Force the grid to use exactly 4 columns */
       .emoji-container {
         grid-template-columns: repeat(4, 1fr);
         gap: 10px;
         width: 100%;
       }
-      /* Remove the extra styling from each emoji box */
       .emoji-item {
         padding: 5px;
         background: transparent;
         box-shadow: none;
       }
-      /* Hide the emoji name text */
       .emoji-item .emoji-name {
         display: none;
       }
-      /* Smaller emoji image size */
       .emoji-item img {
         width: 40px;
         height: 40px;
+        object-fit: contain;
       }
     }
+    /* Pink and glassy styling for the Save Order button */
+    #saveOrderBtn {
+      margin-top: 20px;
+      background: rgba(255, 182, 222, 0.425);
+      border: 1px solid rgba(255,182,193,0.5);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: #fff;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 8px;
+    }
+    #saveOrderBtn:hover {
+      margin-top: 20px;
+      background: rgba(253, 136, 234, 0.808);
+      border: 1px solid rgba(146, 107, 113, 0.5);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: #000000b9;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 8px;
+    }
+    /* Custom styles for the confirmation modal */
+    .modal-glassy {
+      background: rgba(255,182,193,0.3);
+      border: 1px solid rgba(255,182,193,0.5);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: #fff;
+    }
+    .modal-header, .modal-footer {
+      border: none;
+    }
+
+    /* Custom styles for modal buttons */
+    #modalConfirmBtn {
+      background: rgba(255,105,180,0.35); /* Slightly darker glassy pink */
+      border: 1px solid rgba(255,105,180,0.5);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: #fff;
+      font-weight: 600;
+    }
+    #modalConfirmBtn:hover {
+      background: rgba(255,105,180,0.5);
+    }
+    #modalCancelBtn {
+      background: rgba(255,255,255,0.3); /* Glassy white */
+      border: 1px solid rgba(255,255,255,0.5);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: #000;
+      font-weight: 600;
+    }
+    #modalCancelBtn:hover {
+      background: rgba(255,255,255,0.5);
+    }
+
   </style>
 </head>
 <body>
@@ -237,11 +292,54 @@
     <!-- Main Content: Emoji grid -->
     <div class="container">
       <div id="emoji-list" class="emoji-container"></div>
+      <!-- Save Order Button -->
+      <button id="saveOrderBtn">Save Order</button>
     </div>
   </div>
+  
+  <!-- Custom confirmation modal using Bootstrap -->
+  <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content modal-glassy">
+        <div class="modal-header">
+          <h5 class="modal-title" id="confirmModalLabel">Last chance to go back (not really) </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Happy with the emoji order, Jeppie?
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="modalCancelBtn" class="btn" data-bs-dismiss="modal">It sucks</button>
+          <button type="button" id="modalConfirmBtn" class="btn">I LOVE IT</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content modal-glassy">
+        <div class="modal-header">
+          <h5 class="modal-title" id="successModalLabel">Success</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Emoji order saved and updated on Discord!
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn" id="successCloseBtn" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Modal (To implement in the future)-->
+  
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // Create header stars (as before)
     function createHeaderStar() {
       const container = document.getElementById('star-animation');
       const star = document.createElement('span');
@@ -272,8 +370,9 @@
         setTimeout(() => spark.remove(), 800);
       }
     }
-    setInterval(createHeaderStar, 170);
+    setInterval(createHeaderStar, 200);
     
+    // Create emoji items and attach an event to spawn internal stars on hover
     fetch('/emojis')
       .then(response => response.json())
       .then(emojis => {
@@ -291,7 +390,8 @@
         new Sortable(container, {
           animation: 150,
           onEnd: function(evt) {
-            const newOrder = Array.from(container.children).map((item, index) => ({
+
+            const newOrder = Array.from(evt.from.children).map((item, index) => ({
               id: item.dataset.emojiId,
               position: index
             }));
@@ -311,6 +411,57 @@
       container.appendChild(star);
       setTimeout(() => star.remove(), 1000);
     }
+    
+    // Handle Save Order button click using the custom modal confirmation
+    const saveOrderBtn = document.getElementById('saveOrderBtn');
+    const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    
+    saveOrderBtn.addEventListener('click', function() {
+      // Show our custom confirmation modal
+      confirmModal.show();
+    });
+    
+    document.getElementById('modalConfirmBtn').addEventListener('click', function() {
+  const container = document.getElementById('emoji-list');
+  const emojiOrder = Array.from(container.children).map((item, index) => ({
+    id: item.dataset.emojiId,
+    position: index
+  }));
+  
+  // Get channel_id from URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const channelId = urlParams.get('channel_id');
+  
+  // Send both order and channel_id
+  fetch('/saveOrder', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      order: emojiOrder,
+      channel_id: channelId
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('Final Emoji Order:', emojiOrder);
+    const confirmModalEl = document.getElementById('confirmModal');
+    confirmModalEl.addEventListener('hidden.bs.modal', function handler() {
+      confirmModalEl.removeEventListener('hidden.bs.modal', handler);
+      const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+      successModal.show();
+    });
+    confirmModal.hide();
+  })
+  .catch(err => {
+    console.error(err);
+    confirmModal.hide();
+  });
+});
+
+
+
+
+
   </script>
 </body>
 </html>
