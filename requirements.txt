@@ -1,0 +1,27 @@
+aiohappyeyeballs==2.4.6
+aiohttp==3.11.12
+aiosignal==1.3.2
+asgiref==3.8.1
+async-timeout==5.0.1
+attrs==25.1.0
+blinker @ file:///croot/blinker_1737448726027/work
+click @ file:///croot/click_1698129812380/work
+discord.py==2.5.0
+Flask @ file:///croot/flask_1737454299809/work
+Flask-Cors @ file:///tmp/build/80754af9/flask-cors_1609957731919/work
+frozenlist==1.5.0
+idna==3.10
+importlib_metadata @ file:///croot/importlib_metadata-suite_1732633488278/work
+itsdangerous @ file:///croot/itsdangerous_1716533337253/work
+Jinja2 @ file:///croot/jinja2_1737760107953/work
+MarkupSafe @ file:///croot/markupsafe_1738584038848/work
+multidict==6.1.0
+propcache==0.2.1
+pyngrok==7.2.3
+python-dotenv @ file:///croot/python-dotenv_1669132557191/work
+PyYAML==6.0.2
+six @ file:///tmp/build/80754af9/six_1644875935023/work
+typing_extensions==4.12.2
+Werkzeug @ file:///croot/werkzeug_1737448706492/work
+yarl==1.18.3
+zipp @ file:///croot/zipp_1732630741423/work
