@@ -1,27 +1,53 @@
-aiohappyeyeballs==2.4.6
-aiohttp==3.11.12
-aiosignal==1.3.2
-asgiref==3.8.1
-async-timeout==5.0.1
-attrs==25.1.0
-blinker @ file:///croot/blinker_1737448726027/work
-click @ file:///croot/click_1698129812380/work
-discord.py==2.5.0
-Flask @ file:///croot/flask_1737454299809/work
-Flask-Cors @ file:///tmp/build/80754af9/flask-cors_1609957731919/work
-frozenlist==1.5.0
-idna==3.10
-importlib_metadata @ file:///croot/importlib_metadata-suite_1732633488278/work
-itsdangerous @ file:///croot/itsdangerous_1716533337253/work
-Jinja2 @ file:///croot/jinja2_1737760107953/work
-MarkupSafe @ file:///croot/markupsafe_1738584038848/work
-multidict==6.1.0
-propcache==0.2.1
-pyngrok==7.2.3
-python-dotenv @ file:///croot/python-dotenv_1669132557191/work
-PyYAML==6.0.2
-six @ file:///tmp/build/80754af9/six_1644875935023/work
-typing_extensions==4.12.2
-Werkzeug @ file:///croot/werkzeug_1737448706492/work
-yarl==1.18.3
-zipp @ file:///croot/zipp_1732630741423/work
+_libgcc_mutex=0.1=main
+_openmp_mutex=5.1=1_gnu
+aiohappyeyeballs=2.4.6=pypi_0
+aiohttp=3.11.12=pypi_0
+aiosignal=1.3.2=pypi_0
+asgiref=3.8.1=pypi_0
+async-timeout=5.0.1=pypi_0
+attrs=25.1.0=pypi_0
+blinker=1.9.0=py39h06a4308_0
+brotli-python=1.0.9=py39h6a678d5_9
+ca-certificates=2024.12.31=h06a4308_0
+certifi=2025.1.31=py39h06a4308_0
+charset-normalizer=3.3.2=pyhd3eb1b0_0
+click=8.1.7=py39h06a4308_0
+discord-py=2.5.0=pypi_0
+flask=3.1.0=py39h06a4308_0
+flask-cors=3.0.10=pyhd3eb1b0_0
+frozenlist=1.5.0=pypi_0
+idna=3.10=pypi_0
+importlib-metadata=8.5.0=py39h06a4308_0
+itsdangerous=2.2.0=py39h06a4308_0
+jinja2=3.1.5=py39h06a4308_0
+ld_impl_linux-64=2.40=h12ee557_0
+libffi=3.4.4=h6a678d5_1
+libgcc-ng=11.2.0=h1234567_1
+libgomp=11.2.0=h1234567_1
+libstdcxx-ng=11.2.0=h1234567_1
+markupsafe=3.0.2=py39h5eee18b_0
+multidict=6.1.0=pypi_0
+ncurses=6.4=h6a678d5_0
+openssl=3.0.15=h5eee18b_0
+pip=25.0.1=pypi_0
+propcache=0.2.1=pypi_0
+pyngrok=7.2.3=pypi_0
+pysocks=1.7.1=py39h06a4308_0
+python=3.9.21=he870216_1
+python-dotenv=0.21.0=py39h06a4308_0
+pyyaml=6.0.2=pypi_0
+readline=8.2=h5eee18b_0
+requests=2.32.3=py39h06a4308_1
+setuptools=75.8.0=py39h06a4308_0
+six=1.16.0=pyhd3eb1b0_1
+sqlite=3.45.3=h5eee18b_0
+tk=8.6.14=h39e8969_0
+typing-extensions=4.12.2=pypi_0
+tzdata=2025a=h04d1e81_0
+urllib3=2.3.0=py39h06a4308_0
+werkzeug=3.1.3=py39h06a4308_0
+wheel=0.45.1=py39h06a4308_0
+xz=5.6.4=h5eee18b_1
+yarl=1.18.3=pypi_0
+zipp=3.21.0=py39h06a4308_0
+zlib=1.2.13=h5eee18b_1
