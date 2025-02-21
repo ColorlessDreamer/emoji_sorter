@@ -2,6 +2,8 @@ import os
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from discord import app_commands
+
 
 load_dotenv()
 
@@ -33,53 +35,88 @@ command_show_emojis = discord.app_commands.Command(
     description="Display all server emojis"
 )
 
+async def update_emojis(order, guild):
+    import re
+    
+    emoji_data = []
+    for item in order:
+        emoji = discord.utils.get(guild.emojis, id=int(item['id']))
+        if emoji:
+            # Strip existing sort prefix if present
+            original_name = emoji.name
+            if re.match(r'^j_\d{3}_', original_name):
+                original_name = original_name[6:]  # Remove "f_XXX_" prefix
+                
+            emoji_data.append({
+                'emoji': emoji,
+                'original_name': original_name,
+                'position': int(item['position'])
+            })
+    
+    emoji_data.sort(key=lambda x: x['position'])
+    
+    for i, data in enumerate(emoji_data):
+        await data['emoji'].edit(name=f"j_{i:03d}_{data['original_name']}")
+
+
+
+
+class ConfirmView(discord.ui.View):
+    def __init__(self, order, guild):
+        super().__init__(timeout=60.0)
+        self.order = order
+        self.guild = guild
+
+    @discord.ui.button(label="Confirm", style=discord.ButtonStyle.success)
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("Emoji order update confirmed!", ephemeral=True)
+        await update_emojis(self.order, self.guild)
+        for child in self.children:
+            child.disabled = True
+        await interaction.message.edit(view=self)
+        self.stop()
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.danger)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("Emoji order update cancelled.", ephemeral=True)
+        for child in self.children:
+            child.disabled = True
+        await interaction.message.edit(view=self)
+        self.stop()
+
 class Bot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
-        intents.guild_messages = True
         intents.guilds = True
-        super().__init__(command_prefix='!', intents=intents)
+        intents.message_content = True  # Add this line
+
+        super().__init__(command_prefix="!", intents=intents)
 
     async def setup_hook(self):
         guild_id = int(os.getenv("GUILD_ID"))
         guild_obj = discord.Object(id=guild_id)
+        
+        @app_commands.command(name="sort", description="Get the link to sort emojis!")
+        async def sort(interaction: discord.Interaction):
+            # Build a link to your webpage, appending a query parameter "channel_id"
+            # You may adjust the domain and query parameter name as needed.
+            domain_url = os.getenv("DOMAIN_URL")  # e.g., "http://localhost:5000" or "https://yourdomain.com"
+            channel_id = interaction.channel.id
+            sort_link = f"{domain_url}/sort?channel_id={channel_id}"
 
-        # Debug: Print current cached commands before clearing.
-        print("Before clearing:")
-        print("Global Commands:", self.tree._global_commands)
-        print("Guild Commands:", self.tree._guild_commands)
-
-        # Clear global commands and guild commands (these methods are synchronous).
-        self.tree.clear_commands(guild=None)
-        self.tree.clear_commands(guild=guild_obj)
-
-        # Add the wrapped command for the specific guild.
-        self.tree.add_command(command_show_emojis, guild=guild_obj)
+            # This ephemeral message tells the user to follow the link.
+            await interaction.response.send_message(
+                f"Sort your emojis here: {sort_link}\nAfter saving your order on the page, I'll post a confirmation here.",
+                ephemeral=True
+            )
+        self.tree.add_command(sort, guild=guild_obj)
         await self.tree.sync(guild=guild_obj)
 
-        # Debug: Print command caches after syncing.
-        print("\nAfter clearing and syncing:")
-        print("Global Commands:", self.tree._global_commands)
-        print("Guild Commands:", self.tree._guild_commands)
-
-        print("\nBot is starting...")
-        print(f"Connected to guild ID: {guild_id}")
-
     async def on_ready(self):
-        guild_id = int(os.getenv("GUILD_ID"))
-        guild = self.get_guild(guild_id)
-        if guild:
-            print(f"Connected to guild: {guild.name} (ID: {guild.id})")
-            print(f"Owner ID: {guild.owner_id}")
-            print(f"Emoji count: {len(guild.emojis)}")
-            print(f"Member count: {guild.member_count}")
-        else:
-            print("Guild not found.")
+        print(f"Logged in as {self.user}")
 
-# Create and run the bot using the token from your .env.
 bot = Bot()
 
-# Add at the bottom
 def run_bot():
     bot.run(os.getenv("DISCORD_TOKEN"))
 
