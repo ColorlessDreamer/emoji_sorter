@@ -100,7 +100,7 @@ class Bot(commands.Bot):
         async def sort(interaction: discord.Interaction):
             # Build a link to your webpage, appending a query parameter "channel_id"
             # You may adjust the domain and query parameter name as needed.
-            domain_url = os.getenv("DOMAIN_URL")  # e.g., "http://localhost:5000" or "https://yourdomain.com"
+            domain_url = os.getenv("DOMAIN_URL")  
             channel_id = interaction.channel.id
             sort_link = f"{domain_url}/sort?channel_id={channel_id}"
 

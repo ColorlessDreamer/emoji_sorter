@@ -3,7 +3,7 @@ from app import app
 from bot import run_bot
 
 def run_flask():
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=8080)
 
 if __name__ == "__main__":
     # Run Flask in a separate thread
