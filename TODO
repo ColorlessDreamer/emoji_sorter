@@ -1,4 +1,11 @@
 Make the drag and drop more responsive
 Check all the names and prints
-Fix the endpoints
+(IMPORTANT) Fix the broken endpoints
 Maybe add a few more functions for fun?
+(IMPORTANT) Make sure it restarts if something breaks
+(SEMI-IMPORTANT) Implement Google Build Trigger
+(?????) Get an actual domain
+Implement some checks to make sure it doesn't break everything
+Make it so it can be run on different servers, fetches the Guild ID itself
+Ask Jeppie if she wasn't the confirmation in Direct Messages
+|||DONE|||(((SUPER-IMPORTANT))) Implement the admin/mod check
