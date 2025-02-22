@@ -12,6 +12,298 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- SortableJS -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
+  <script>
+  // Single fetch call that handles both selection and sorting
+  fetch('/emojis')
+    .then(response => response.json())
+    .then(emojis => {
+      const container = document.getElementById('emoji-list');
+      container.innerHTML = '';
+      
+      emojis.forEach(emoji => {
+        const div = document.createElement('div');
+        div.className = 'emoji-item';
+        div.dataset.emojiId = emoji.id;
+        div.innerHTML = `<img src="${emoji.url}" alt="${emoji.name}"><div class="emoji-name"></div>`;
+        
+        // Selection handler
+        div.addEventListener('click', function(e) {
+          const now = Date.now();
+          if (now - lastClickTime < 50) return;
+          lastClickTime = now;
+          
+          if (selectedEmojis.has(this)) {
+            selectedEmojis.delete(this);
+            this.classList.remove('selected');
+          } else {
+            selectedEmojis.add(this);
+            this.classList.add('selected');
+          }
+        });
+        
+        container.appendChild(div);
+      });
+
+
+      let sortableInstance;
+
+// When first creating Sortable, store the configuration
+sortableInstance = new Sortable(container, {
+  animation: 150,
+  multiDrag: true,
+  selectedClass: 'selected',
+  
+  setData: function (dataTransfer, dragEl) {
+    const selectedCount = document.querySelectorAll('.selected').length;
+    if (selectedCount > 1) {
+      dragEl.dataset.originalContent = dragEl.innerHTML;
+      dragEl.innerHTML = `<div class="drag-count">${selectedCount}</div>`;
+    }
+  },
+
+  onStart: function(evt) {
+    const selectedCount = document.querySelectorAll('.selected').length;
+    if (selectedCount > 1) {
+      const countDisplay = `<div class="drag-count">${selectedCount}</div>`;
+      
+      document.querySelectorAll('.selected').forEach(item => {
+        if (!item.dataset.originalContent) {
+          item.dataset.originalContent = item.innerHTML;
+        }
+        item.innerHTML = countDisplay;
+      });
+    }
+  },
+  
+  onEnd: function(evt) {
+    document.querySelectorAll('.selected').forEach(item => {
+      if (item.dataset.originalContent) {
+        item.innerHTML = item.dataset.originalContent;
+        delete item.dataset.originalContent;
+      }
+    });
+    
+    if (evt.item.dataset.originalContent) {
+      evt.item.innerHTML = evt.item.dataset.originalContent;
+      delete evt.item.dataset.originalContent;
+    }
+    
+    const newOrder = Array.from(evt.from.children).map((item, index) => ({
+      id: item.dataset.emojiId,
+      position: index
+    }));
+    console.log('New order:', newOrder);
+  }
+});
+
+
+let engine, render, world;
+let emojiBodies = [];
+let originalPositions = new Map();
+let sillyModeActive = false;
+let activeConstraint = null;
+let selectedBody = null;
+
+// Store event handlers as named functions
+function clickHandler(e) {
+  if (!sillyModeActive) return;
+
+  if (activeConstraint) {
+    emojiBodies.forEach(({ element }) => {
+      element.style.backgroundColor = '';
+      element.style.boxShadow = '';
+    });
+    Matter.World.remove(world, activeConstraint);
+    activeConstraint = null;
+    selectedBody = null;
+    return;
+  }
+
+
+  const mousePosition = {
+    x: e.clientX,
+    y: e.clientY
+  };
+
+  for (let i = 0; i < emojiBodies.length; i++) {
+    const body = emojiBodies[i].body;
+    if (Matter.Bounds.contains(body.bounds, mousePosition)) {
+      selectedBody = body;
+      // Add highlight to selected emoji
+      emojiBodies[i].element.style.backgroundColor = 'rgba(255, 105, 180, 0.3)';
+      emojiBodies[i].element.style.boxShadow = '0 0 15px rgba(255, 105, 180, 0.5)';
+      activeConstraint = Matter.Constraint.create({
+        pointA: mousePosition,
+        bodyB: selectedBody,
+        stiffness: 0.1,
+        render: { visible: false }
+      });
+      Matter.World.add(world, activeConstraint);
+      break;
+    }
+  }
+}
+
+
+function mouseMoveHandler(e) {
+  if (activeConstraint) {
+    activeConstraint.pointA = { x: e.clientX, y: e.clientY };
+  }
+}
+
+// Replace the change event listener with this click handler
+document.getElementById('sillyMode').addEventListener('click', function() {
+  this.classList.toggle('active');
+  if (this.classList.contains('active')) {
+    startSillyMode();
+  } else {
+    stopSillyMode();
+  }
+});
+
+
+function startSillyMode() {
+  const instruction = document.createElement('div');
+  instruction.className = 'silly-instruction';
+  instruction.textContent = 'CLICK AN EMOJI';
+  document.body.appendChild(instruction);
+  
+  // Change text after 5 seconds
+  setTimeout(() => {
+    if (sillyModeActive && instruction) {  // Check if still in silly mode
+      instruction.textContent = 'ENJOY SILLY MODE';
+    }
+  }, 5000);
+  
+  sillyModeActive = true;
+  sortableInstance.option("disabled", true);
+    
+  engine = Matter.Engine.create();
+  world = engine.world;
+  world.gravity.y = 1;
+  
+  // Create boundaries
+  const wallThickness = 60;
+  
+  // Ground
+  const ground = Matter.Bodies.rectangle(
+    window.innerWidth / 2,
+    window.innerHeight - 30,
+    window.innerWidth,
+    wallThickness,
+    { isStatic: true }
+  );
+  
+  // Left wall
+  const leftWall = Matter.Bodies.rectangle(
+    -30, window.innerHeight/2,
+    wallThickness, window.innerHeight,
+    { isStatic: true }
+  );
+  
+  // Right wall
+  const rightWall = Matter.Bodies.rectangle(
+    window.innerWidth + 30, window.innerHeight/2,
+    wallThickness, window.innerHeight,
+    { isStatic: true }
+  );
+  
+  Matter.World.add(world, [ground, leftWall, rightWall]);
+
+  // Store original positions and create physics bodies
+  const emojis = document.querySelectorAll('.emoji-item');
+  emojis.forEach(emoji => {
+    const rect = emoji.getBoundingClientRect();
+    originalPositions.set(emoji, {
+      position: emoji.style.position,
+      left: emoji.style.left,
+      top: emoji.style.top
+    });
+    
+    emoji.style.position = 'absolute';
+    emoji.style.left = `${rect.left}px`;
+    emoji.style.top = `${rect.top}px`;
+
+    const body = Matter.Bodies.rectangle(
+      rect.left + rect.width/2,
+      rect.top + rect.height/2,
+      rect.width,
+      rect.height,
+      {
+        collisionFilter: {
+          category: 0x0001
+        },
+        chamfer: { radius: 5 },
+        slop: 0
+      }
+    );
+    Matter.World.add(world, body);
+    emojiBodies.push({ element: emoji, body: body });
+  });
+
+  // Add event listeners using named functions
+  document.addEventListener('click', clickHandler);
+  document.addEventListener('mousemove', mouseMoveHandler);
+    
+  // Start the physics simulation
+  Matter.Engine.run(engine);
+    
+  // Update emoji positions
+  function updatePositions() {
+    if (!sillyModeActive) return;
+    
+    emojiBodies.forEach(({ element, body }) => {
+      element.style.left = `${body.position.x - element.offsetWidth/2}px`;
+      element.style.top = `${body.position.y - element.offsetHeight/2}px`;
+      element.style.transform = `rotate(${body.angle}rad)`;
+    });
+    
+    requestAnimationFrame(updatePositions);
+  }
+    
+  requestAnimationFrame(updatePositions);
+}
+
+function stopSillyMode() {
+  const instruction = document.querySelector('.silly-instruction');
+  if (instruction) {
+    instruction.remove();
+  }
+  sillyModeActive = false;
+  sortableInstance.option("disabled", false);
+
+  // Remove event listeners using named functions
+  document.removeEventListener('click', clickHandler);
+  document.removeEventListener('mousemove', mouseMoveHandler);
+
+  // Restore original positions
+  emojiBodies.forEach(({ element }) => {
+    const originalPos = originalPositions.get(element);
+    element.style.position = originalPos.position;
+    element.style.left = originalPos.left;
+    element.style.top = originalPos.top;
+    element.style.transform = 'none';
+  });
+  
+  // Clean up physics engine
+  Matter.Engine.clear(engine);
+  emojiBodies = [];
+  originalPositions.clear();
+  activeConstraint = null;
+  selectedBody = null;
+}
+
+
+
+
+    });
+
+  </script>
+
+
   <style>
     /* Ensure box-sizing includes padding/border in widths */
     *, *::before, *::after {
@@ -26,6 +318,8 @@
       margin: 0;
       position: relative;
     }
+
+    
     /* Glassy container for the content */
     .glass-container {
       position: relative;
@@ -138,11 +432,11 @@
     }
     /* Emoji grid container styling */
     .emoji-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-      gap: 20px;
-      padding: 20px;
-    }
+        display: grid;
+        grid-template-columns: repeat(9, 1fr);  /* Forces exactly 9 columns */
+        gap: 8px;
+        padding: 20px;
+      }
     /* Ensure each emoji box can position children absolutely */
     .emoji-item {
       background: #fff;
@@ -155,6 +449,24 @@
       position: relative;
       overflow: hidden;
     }
+
+    .drag-count {
+        background: rgba(255, 105, 180, 0.9);
+        color: white;
+        font-size: 24px;
+        font-weight: bold;
+        padding: 12px 16px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 64px;
+        height: 64px;
+        margin: auto;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 2px 8px rgba(255, 105, 180, 0.4);
+      }
+
     .emoji-item:hover {
       transform: translateY(-5px);
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
@@ -163,15 +475,146 @@
       width: 64px;
       height: 64px;
     }
-    .emoji-item .emoji-name {
-      margin-top: 10px;
-      font-weight: 500;
-      font-size: 0.95rem;
-      white-space: normal;
-      overflow-wrap: break-word;
-      color: black;
-      -webkit-text-stroke: 0.1px #ff1493;
-    }
+
+    .emoji-item.selected {
+    border: 2px solid #ff69b4;
+    background: rgba(255, 105, 180, 0.1);
+    transform: scale(1.05);
+  }
+
+    .toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 20px;
+  }
+
+  .silly-button {
+  background: rgba(255, 182, 193, 0.3);
+  border: 2px solid rgba(255, 150, 166, 0.637);
+  border-radius: 50%;
+  width: 100px;
+  height: 100px;
+  font-family: 'Cherry Swash', cursive;
+  color: white;
+  text-shadow: 
+    0 0 5px #ff1493,
+    0 0 15px #ff1493,
+    0 0 25px #ff69b4;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  animation: buttonGlow 2s infinite alternate;
+}
+
+@keyframes buttonGlow {
+  0% {
+    box-shadow: 
+      0 0 20px rgba(255, 255, 255, 0.4),
+      0 0 40px rgba(255, 105, 180, 0.3),
+      0 0 60px rgba(255, 105, 180, 0.2),
+      0 0 80px rgba(255, 105, 180, 0.1);
+    background: rgba(255, 182, 193, 0.4);
+  }
+  100% {
+    box-shadow: 
+      0 0 30px rgba(255, 255, 255, 0.6),
+      0 0 60px rgba(255, 105, 180, 0.5),
+      0 0 90px rgba(255, 105, 180, 0.3),
+      0 0 120px rgba(255, 105, 180, 0.2);
+    background: rgba(255, 192, 203, 0.6);
+  }
+}
+
+
+.silly-button:hover {
+  transform: scale(1.15);
+  animation: buttonGlowHover 1s infinite alternate;
+}
+
+@keyframes buttonGlowHover {
+  0% {
+    box-shadow: 
+      0 0 30px rgba(255, 255, 255, 0.6),
+      0 0 60px rgba(255, 105, 180, 0.5),
+      0 0 90px rgba(255, 105, 180, 0.4),
+      0 0 120px rgba(255, 105, 180, 0.3);
+    background: rgba(255, 192, 203, 0.7);
+  }
+  100% {
+    box-shadow: 
+      0 0 40px rgba(255, 255, 255, 0.8),
+      0 0 80px rgba(255, 105, 180, 0.7),
+      0 0 120px rgba(255, 105, 180, 0.5),
+      0 0 160px rgba(255, 105, 180, 0.4);
+    background: rgba(255, 105, 180, 0.8);
+  }
+}
+
+.silly-button.active {
+  background: rgba(255, 105, 180, 0.9);
+  animation: buttonGlowActive 1s infinite alternate;
+}
+
+@keyframes buttonGlowActive {
+  0% {
+    box-shadow: 
+      0 0 40px rgba(255, 255, 255, 0.7),
+      0 0 80px rgba(255, 105, 180, 0.6),
+      0 0 120px rgba(255, 105, 180, 0.5),
+      0 0 160px rgba(255, 105, 180, 0.4);
+  }
+  100% {
+    box-shadow: 
+      0 0 50px rgba(255, 255, 255, 0.9),
+      0 0 100px rgba(255, 105, 180, 0.8),
+      0 0 150px rgba(255, 105, 180, 0.6),
+      0 0 200px rgba(255, 105, 180, 0.5);
+  }
+}
+
+
+
+
+  .silly-instruction {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Cherry Swash', cursive;
+  font-size: 96px; /* Doubled the size */
+  text-align: center;
+  pointer-events: none;
+  z-index: 1000;
+  animation: neonPulse 1s infinite alternate;
+}
+
+@keyframes neonPulse {
+  from {
+    color: #fff;
+    text-shadow: 
+      0 0 20px #ff1493,
+      0 0 40px #ff1493,
+      0 0 60px #ff1493,
+      0 0 80px #ff69b4,
+      0 0 140px #ff69b4;  /* Doubled all shadow values */
+  }
+  to {
+    color: #ff69b4;
+    text-shadow: 
+      0 0 10px #ff1493,
+      0 0 20px #ff1493,
+      0 0 30px #ff1493,
+      0 0 40px #ff69b4,
+      0 0 70px #ff69b4;
+  }
+}
+
+
+
+
+
     /* Star animation that appears inside each emoji box */
     .internal-star {
       position: absolute;
@@ -201,6 +644,12 @@
         padding: 0 10px;
         margin: 0 auto;
       }
+    @media (min-width: 992px) {
+      .emoji-container {
+      grid-template-columns: repeat(9, 1fr);
+        }
+      } 
+      
       .emoji-container {
         grid-template-columns: repeat(4, 1fr);
         gap: 10px;
@@ -219,6 +668,10 @@
         height: 40px;
         object-fit: contain;
       }
+
+
+
+
     }
     /* Pink and glassy styling for the Save Order button */
     #saveOrderBtn {
@@ -284,18 +737,22 @@
 <body>
   <!-- Glass container for a glassy effect -->
   <div class="glass-container">
-    <!-- Styled page title with special characters and star animation overlay -->
     <div class="page-title">
       ✧₊˚ Femcel Hideout Emoji Sorter ˚₊✧
       <div class="star-animation" id="star-animation"></div>
     </div>
-    <!-- Main Content: Emoji grid -->
+    
+    <!-- Move button here and add positioning styles -->
+    <button id="sillyMode" class="silly-button" style="position: absolute; bottom: 20px; left: 20px;">Silly Mode</button>
+    
+    <!-- Rest of your content -->
     <div class="container">
       <div id="emoji-list" class="emoji-container"></div>
-      <!-- Save Order Button -->
       <button id="saveOrderBtn">Save Order</button>
     </div>
   </div>
+  
+  
   
   <!-- Custom confirmation modal using Bootstrap -->
   <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
@@ -333,6 +790,8 @@
       </div>
     </div>
   </div>
+
+
 
   <!-- Error Modal (To implement in the future)-->
   
@@ -372,34 +831,7 @@
     }
     setInterval(createHeaderStar, 200);
     
-    // Create emoji items and attach an event to spawn internal stars on hover
-    fetch('/emojis')
-      .then(response => response.json())
-      .then(emojis => {
-        const container = document.getElementById('emoji-list');
-        emojis.forEach(emoji => {
-          const div = document.createElement('div');
-          div.className = 'emoji-item';
-          div.dataset.emojiId = emoji.id;
-          div.innerHTML = `<img src="${emoji.url}" alt="${emoji.name}"><div class="emoji-name">${emoji.name}</div>`;
-          div.addEventListener('mouseenter', function() {
-            createInternalStar(this);
-          });
-          container.appendChild(div);
-        });
-        new Sortable(container, {
-          animation: 150,
-          onEnd: function(evt) {
-
-            const newOrder = Array.from(evt.from.children).map((item, index) => ({
-              id: item.dataset.emojiId,
-              position: index
-            }));
-            console.log('New order:', newOrder);
-          }
-        });
-      });
-    
+    // Create emoji items and attach an event to spawn internal stars on hover  
     function createInternalStar(container) {
       const star = document.createElement('span');
       star.className = 'internal-star';
