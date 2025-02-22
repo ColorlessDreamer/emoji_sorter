@@ -92,6 +92,9 @@ class Bot(commands.Bot):
         intents.message_content = True
         super().__init__(command_prefix="!", intents=intents)
         self.active_sessions = {} 
+        self.last_ready = None
+        self.last_command = None
+        self.last_error = None
 
 
     async def setup_hook(self):
@@ -101,6 +104,9 @@ class Bot(commands.Bot):
                 await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
                 return
 
+            # Defer the response immediately
+            await interaction.response.defer(ephemeral=True)
+            
             # Generate unique session ID
             session_id = secrets.token_urlsafe(16)
             
@@ -113,16 +119,19 @@ class Bot(commands.Bot):
             domain_url = os.getenv("DOMAIN_URL")
             sort_link = f"{domain_url}/sort?session={session_id}"
             
-            await interaction.response.send_message(
+            # Use followup instead of response since we deferred
+            await interaction.followup.send(
                 f"Sort your emojis here: {sort_link}\nAfter saving your order on the page, I'll post a confirmation here.",
                 ephemeral=True
             )
+
 
         self.tree.add_command(sort)
         await self.tree.sync()
 
 
     async def on_ready(self):
+        self.last_ready = datetime.now()
         print(f"Logged in as {self.user}")
 
 bot = Bot()

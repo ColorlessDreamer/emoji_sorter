@@ -5,7 +5,36 @@ from datetime import timedelta
 import discord
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('FLASK_SECRET_KEY') 
 app.permanent_session_lifetime = timedelta(minutes=30)
+
+
+@app.route('/')
+def status():
+    status_data = {
+        'bot_user': str(bot.user) if bot.user else 'Not Connected',
+        'last_ready': bot.last_ready.strftime('%Y-%m-%d %H:%M:%S') if bot.last_ready else 'Never',
+        'uptime': str(datetime.now() - bot.last_ready) if bot.last_ready else 'N/A',
+        'active_sessions': len(bot.active_sessions),
+        'connected_guilds': len(bot.guilds),
+        'last_command': bot.last_command,
+        'last_error': bot.last_error
+    }
+
+    status_html = """
+    <h1>Discord Emoji Sorter Status</h1>
+    <pre>
+    Bot User: {bot_user}
+    Last Ready: {last_ready}
+    Uptime: {uptime}
+    Active Sessions: {active_sessions}
+    Connected Guilds: {connected_guilds}
+    Last Command: {last_command}
+    Last Error: {last_error}
+    </pre>
+    """.format(**status_data)
+    
+    return status_html
 
 @app.route('/sort')
 def sort_page():
