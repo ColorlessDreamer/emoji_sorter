@@ -1,21 +1,33 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, session
 from bot import bot, ConfirmView
 import os
-import math
-import asyncio
+from datetime import timedelta
 import discord
 
 app = Flask(__name__)
+app.permanent_session_lifetime = timedelta(minutes=30)
 
 @app.route('/sort')
 def sort_page():
-    # You might want to use request.args.get("channel_id") if needed.
+    session_id = request.args.get('session')
+    if not session_id or session_id not in bot.active_sessions:
+        return "Invalid session", 403
+        
+    session.permanent = True
+    session['guild_id'] = bot.active_sessions[session_id]['guild_id']
+    session['channel_id'] = bot.active_sessions[session_id]['channel_id']
+    
+    # Clean up the temporary storage
+    del bot.active_sessions[session_id]
+    
     return render_template('index.html')
-
 
 @app.route('/emojis')
 def get_emojis():
-    guild = bot.get_guild(int(os.getenv("GUILD_ID")))
+    if 'guild_id' not in session:
+        return "Session expired", 403
+        
+    guild = bot.get_guild(int(session['guild_id']))
     emoji_data = [
         {
             'id': str(emoji.id),
@@ -24,28 +36,20 @@ def get_emojis():
         }
         for emoji in guild.emojis
     ]
-    # Sort emojis by name
     emoji_data.sort(key=lambda x: x['name'])
     return jsonify(emoji_data)
 
-
 @app.route('/saveOrder', methods=['POST'])
 async def save_order():
+    if 'channel_id' not in session:
+        return "Session expired", 403
+        
     data = request.json
-    # If data is a list, assign it directly
-    if isinstance(data, list):
-        new_order = data
-        channel_id = None  # you might need to get channel_id via another mechanism, e.g. query parameter
-    else:
-        new_order = data.get("order")
-        channel_id = data.get("channel_id")
-    print("Received new order:", new_order)
-    # Schedule sending the confirmation message if channel_id is provided, otherwise handle it appropriately.
-    if channel_id:
-        bot.loop.create_task(send_confirmation_message(new_order, channel_id))
-    else:
-        print("No channel_id provided; cannot send confirmation message.")
+    new_order = data.get("order")
+    channel_id = session['channel_id']
+    bot.loop.create_task(send_confirmation_message(new_order, channel_id))
     return jsonify({'status': 'confirmation task scheduled'})
+
 
 
 async def send_confirmation_message(order, channel_id):

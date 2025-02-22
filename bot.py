@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 from discord import app_commands
+import secrets
 
 
 load_dotenv()
@@ -88,36 +89,38 @@ class Bot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.guilds = True
-        intents.message_content = True  # Add this line
-
+        intents.message_content = True
         super().__init__(command_prefix="!", intents=intents)
+        self.active_sessions = {} 
+
 
     async def setup_hook(self):
-        guild_id = int(os.getenv("GUILD_ID"))
-        guild_obj = discord.Object(id=guild_id)
-        
         @app_commands.command(name="sort", description="Get the link to sort emojis!")
         async def sort(interaction: discord.Interaction):
-            # Permissions check: allow administrators, or optionally mods if enabled
-            authorized = False
-            # Check if the user is an administrator
-            if interaction.user.guild_permissions.administrator:
-                authorized = True
-
-            if not authorized:
+            if not interaction.user.guild_permissions.administrator:
                 await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
                 return
 
-            # Proceed if authorized
-            domain_url = os.getenv("DOMAIN_URL")  # e.g., "https://yourdomain.com"
-            channel_id = interaction.channel.id
-            sort_link = f"{domain_url}/sort?channel_id={channel_id}"
+            # Generate unique session ID
+            session_id = secrets.token_urlsafe(16)
+            
+            # Store the IDs in the bot's session dictionary
+            self.active_sessions[session_id] = {
+                'guild_id': interaction.guild_id,
+                'channel_id': interaction.channel.id
+            }
+            
+            domain_url = os.getenv("DOMAIN_URL")
+            sort_link = f"{domain_url}/sort?session={session_id}"
+            
             await interaction.response.send_message(
                 f"Sort your emojis here: {sort_link}\nAfter saving your order on the page, I'll post a confirmation here.",
                 ephemeral=True
             )
-        self.tree.add_command(sort, guild=guild_obj)
-        await self.tree.sync(guild=guild_obj)
+
+        self.tree.add_command(sort)
+        await self.tree.sync()
+
 
     async def on_ready(self):
         print(f"Logged in as {self.user}")

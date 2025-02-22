@@ -17,9 +17,9 @@
 
   <script>
   // Single fetch call that handles both selection and sorting
-  fetch('/emojis')
-    .then(response => response.json())
-    .then(emojis => {
+  fetch(`/emojis?guild_id=${guildId}`)
+  .then(response => response.json())
+  .then(emojis => {
       const container = document.getElementById('emoji-list');
       container.innerHTML = '';
       
@@ -860,17 +860,13 @@ function stopSillyMode() {
     position: index
   }));
   
-  // Get channel_id from URL parameters
-  const urlParams = new URLSearchParams(window.location.search);
-  const channelId = urlParams.get('channel_id');
-  
+
   // Send both order and channel_id
   fetch('/saveOrder', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      order: emojiOrder,
-      channel_id: channelId
+      order: emojiOrder
     })
   })
   .then(response => response.json())
