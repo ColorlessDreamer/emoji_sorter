@@ -99,17 +99,10 @@ class Bot(commands.Bot):
         @app_commands.command(name="sort", description="Get the link to sort emojis!")
         async def sort(interaction: discord.Interaction):
             # Permissions check: allow administrators, or optionally mods if enabled
-            allow_mods = os.getenv("ALLOW_MODS", "true").lower() in ("true", "1", "yes")
             authorized = False
             # Check if the user is an administrator
             if interaction.user.guild_permissions.administrator:
                 authorized = True
-            # If mods are allowed, check if the user has the mod role
-            elif allow_mods:
-                mod_role_id = os.getenv("MOD_ROLE_ID")
-                if mod_role_id:
-                    if any(str(role.id) == mod_role_id for role in interaction.user.roles):
-                        authorized = True
 
             if not authorized:
                 await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
